@@ -1,4 +1,12 @@
 import cv2
+import numpy as np
+
+INPUT_TAG = 'input'
+OUTPUT_TAG = 'output'
+
+GREEN = (0, 255, 0)
+BLUE = (255, 0, 0)
+RED = (0, 0, 255)
 
 
 class Car:
@@ -10,6 +18,7 @@ class Car:
         self.center = None
         self.last_frame_detected = None
         self.rect = None
+        self.area_tag = {}
         self.add_contour(first_contour, frame)
 
     def add_contour(self, contour, frame):
@@ -31,13 +40,42 @@ class Car:
         x, y = self.get_distance(x, y)
         return x + y
 
+    def draw(self, img):
+        cv2.circle(img, self.center, 3, BLUE, -1)
+        x, y, w, h = self.rect
+        cv2.rectangle(img, (x, y), (x + w, y + h), GREEN, 2)
+        cv2.putText(img, str(self.num), (x + 3, y), 1, 2, RED, 2)
+
+
+class Area:
+    def __init__(self, points, num, tag='input'):
+        self.points = np.array(points, np.int32)
+        self.num = num
+        self.tag = tag
+        # m = cv2.moments(points)
+        # cx = int(m["m10"] / m["m00"])
+        # cy = int(m["m01"] / m["m00"])
+        # self.center = (cx, cy)
+        self.counter = 0
+
+    def calc_frame(self, cars):
+        for car in cars:
+            if cv2.pointPolygonTest(self.points, car.center, False) >= 0:
+                self.counter += 1
+                car.area_tag[self.tag] = self.num
+
+    def draw(self, img):
+        color = RED if self.tag == INPUT_TAG else BLUE
+        cv2.polylines(img, np.int32([self.points]), isClosed=True, color=color)
+        cv2.putText(img, str(self.counter), tuple(self.points[0]), 1, 2, RED, 2)
+
 
 class CarsController:
     def __init__(self, inputs, outputs, cross_area, treashold=50, frames_stay=5, frames_to_forget=15, min_size=40, max_size=200):
         self.frame = 1
         self.cars = []
-        self.inputs = inputs
-        self.outputs = outputs
+        self.inputs = [Area(input_, num, tag=INPUT_TAG) for num, input_ in enumerate(inputs)]
+        self.outputs = [Area(output_, num, tag=OUTPUT_TAG) for num, output_ in enumerate(outputs)]
         self.cross_area = cross_area
         self.distance_treshold = treashold
         self.frames_stay = frames_stay
@@ -45,10 +83,19 @@ class CarsController:
         self.min_size = min_size
         self.max_size = max_size
 
+    def get_last_frame_cars(self, tag):
+        return [i for i in self.cars
+                if i.last_frame_detected == self.frame - 1 and i.area_tag.get(tag) is None
+                ]
+
     def add_contours(self, contours):
         for c in contours:
             self.add_contour(c)
         self.increment_frame()
+        for input_ in self.inputs:
+            input_.calc_frame(self.get_last_frame_cars(INPUT_TAG))
+        for output_ in self.outputs:
+            output_.calc_frame(self.get_last_frame_cars(OUTPUT_TAG))
 
     def add_contour(self, contour):
         rect = cv2.boundingRect(contour)
@@ -83,13 +130,14 @@ class CarsController:
         self.frame += 1
 
     def draw(self, img):
+        for i in self.inputs:
+            i.draw(img)
+        for i in self.outputs:
+            i.draw(img)
+
         for car in self.cars:
             if self.frame - car.last_frame_detected > self.frames_stay:
                 continue
-
-            cv2.circle(img, car.center, 3, (255, 0, 0), -1)
-            x, y, w, h = car.rect
-            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(img, str(car.num),  (x + 3, y), 1, 2, (0, 0, 255), 2)
+            car.draw(img)
 
 

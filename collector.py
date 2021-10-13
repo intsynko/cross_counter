@@ -1,3 +1,4 @@
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import PolygonSelector
 
@@ -6,12 +7,13 @@ class PolygonCollector:
     def __init__(self):
         self.selector = None
 
-    def collect(self, img, title=''):
+    def collect(self, img, title='', max_count=-1):
         rects = []
         def line_select_callback(points):
             rects.append(points)
             plt.close()
-
+            if max_count > 0 and len(rects) >= max_count:
+                return
             fig, ax_ = plt.subplots()
             ax_.imshow(img)
             ax_.set_title(title)
@@ -27,5 +29,5 @@ class PolygonCollector:
         ax.set_title(title)
         self.selector = PolygonSelector(ax, line_select_callback)
         plt.show()
-        return rects
+        return [[list(i) for i in points] for points in rects]
 
