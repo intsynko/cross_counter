@@ -8,16 +8,23 @@ from collector import PolygonCollector
 
 
 # Создаем объекты чтения готово видео и записи нового видео
-vidcap = cv2. VideoCapture('example_3.mp4')
+from detectors.default import default_detector
+
+vidcap = cv2. VideoCapture('example_3_1.mp4')
 frame_width = int(vidcap.get(3))
 frame_height = int(vidcap.get(4))
 out = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (frame_width, frame_height))
 
 # Читаем первый кадр
 success, last_image = vidcap.read()
+import matplotlib.pyplot as plt
+
+plt.imshow(last_image)
+plt.show()
+
 
 # Использовать сохраненный дамп размеченных зон
-use_dump = False
+use_dump = True
 if not use_dump:
     # Просим разметить на первом кадре области
     inputs = PolygonCollector().collect(last_image, title='Разметьте области възда на перекресток (Закончив закройте окно)')
@@ -41,48 +48,19 @@ cars_controller = CarsController(
     max_size=200   # максимальный размер конутра
 )
 
-# кол-во секунд для обработки
-seconds = 120
+frame_interval = 2
 
-for frame_num in range(0, seconds*10):
-    success, current_image = vidcap.read()
-    # пропускаем каждый второй кадр
-    if frame_num % 2 != 0:
-        img = current_image.copy()
-        cars_controller.draw(img)
-        out.write(img)
-        last_image = current_image
-        continue
 
-    # Переводим изоюражения в полутоновые
-    grayA = cv2.cvtColor(last_image, cv2.COLOR_BGR2GRAY)
-    grayB = cv2.cvtColor(current_image, cv2.COLOR_BGR2GRAY)
-
-    # находим разницу соседних фреймов - это и будет показатель движущихся обеъктов
-    diff_image = cv2.absdiff(grayB, grayA)
-
-    # обрабатываем разницу пороговой обработкой
-    ret, thresh = cv2.threshold(diff_image, 30, 255, cv2.THRESH_BINARY)
-
-    # применяем дилатацию, эрозию
-    kernel = np.ones((3, 3), np.uint8)
-    dilated = cv2.dilate(thresh, kernel, iterations=2)
-    dilated = cv2.erode(dilated, kernel, iterations=1)
-
-    # находим контуры
-    contours, hierarchy = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-
-    # грузим контуры в контроллер, он уже считает к какой машине какой контур принадлежит
+def process_default(frame_number, contours, returned_frame):
+    for _ in range(frame_interval-1):
+        cars_controller.increment_frame()
     cars_controller.add_contours(contours)
+    copy = returned_frame.copy()
+    cars_controller.draw(copy)
+    out.write(copy)
 
-    # рисуем на копии изображения машины и зоны
-    dmy = last_image.copy()
-    cars_controller.draw(dmy)
-    # plt.imshow(dmy)
-    # plt.show()
-    out.write(dmy)
 
-    last_image = current_image
+default_detector(vidcap, process_default, frame_interval)
 
 # закрываем каналы чтения и записи видео
 out.release()

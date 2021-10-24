@@ -10,27 +10,25 @@ RED = (0, 0, 255)
 
 
 class Car:
-    def __init__(self, first_contour, frame, num):
+    def __init__(self, rect, frame, num):
         self.num = num
-        self.first_contour = first_contour
+        self.first_rect = rect
         self.frame_created = frame
-        self.current_contour = None
+        self.current_rect = None
         self.center = None
         self.last_frame_detected = None
-        self.rect = None
         self.area_tag = {}
-        self.add_contour(first_contour, frame)
+        self.add_rect(rect, frame)
 
-    def add_contour(self, contour, frame):
-        self.current_contour = contour
+    def add_rect(self, rect, frame):
+        self.current_rect = rect
         self.center = self._calc_center()
-        self.rect = cv2.boundingRect(contour)
         self.last_frame_detected = frame
 
     def _calc_center(self):
-        M = cv2.moments(self.current_contour)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
+        x, y, w, h = self.current_rect
+        cX = int(x + w / 2)
+        cY = int(y + h / 2)
         return cX, cY
 
     def get_distance(self, x, y):
@@ -42,7 +40,7 @@ class Car:
 
     def draw(self, img):
         cv2.circle(img, self.center, 3, BLUE, -1)
-        x, y, w, h = self.rect
+        x, y, w, h = self.current_rect
         cv2.rectangle(img, (x, y), (x + w, y + h), GREEN, 2)
         cv2.putText(img, str(self.num), (x + 3, y), 1, 2, RED, 2)
 
@@ -97,8 +95,16 @@ class CarsController:
         for output_ in self.outputs:
             output_.calc_frame(self.get_last_frame_cars(OUTPUT_TAG))
 
-    def add_contour(self, contour):
-        rect = cv2.boundingRect(contour)
+    def add_rects(self, rects):
+        for r in rects:
+            self.add_rect(r)
+        self.increment_frame()
+        for input_ in self.inputs:
+            input_.calc_frame(self.get_last_frame_cars(INPUT_TAG))
+        for output_ in self.outputs:
+            output_.calc_frame(self.get_last_frame_cars(OUTPUT_TAG))
+
+    def add_rect(self, rect):
         x, y, w, h = rect
         size = abs(w) + abs(h)
         # area = cv2.contourArea(contour)
@@ -108,11 +114,9 @@ class CarsController:
             return
 
         if self.frame == 1:
-            self.cars.append(Car(contour, self.frame, len(self.cars)))
-
-        M = cv2.moments(contour)
-        cX = int(M["m10"] / M["m00"])
-        cY = int(M["m01"] / M["m00"])
+            self.cars.append(Car(rect, self.frame, len(self.cars)))
+        cX = x + w/2
+        cY = y + h/2
 
         for car in self.cars:
             frames_non_active = self.frame - car.last_frame_detected
@@ -122,9 +126,13 @@ class CarsController:
                 continue
             distance = car.get_distance_value(cX, cY)
             if distance < self.distance_treshold - frames_non_active:
-                car.add_contour(contour, self.frame)
+                car.add_rect(rect, self.frame)
                 return
-        self.cars.append(Car(contour, self.frame, len(self.cars)))
+        self.cars.append(Car(rect, self.frame, len(self.cars)))
+
+    def add_contour(self, contour):
+        rect = cv2.boundingRect(contour)
+        self.add_rect(rect)
 
     def increment_frame(self):
         self.frame += 1
