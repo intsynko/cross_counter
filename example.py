@@ -8,7 +8,7 @@ from detectors import default_detector, web_detector
 
 
 # Создаем объекты чтения готово видео и записи нового видео
-vidcap = cv2. VideoCapture('example_3_1.mp4')
+vidcap = cv2. VideoCapture('pushkar_2.mp4')
 frame_width = int(vidcap.get(3))
 frame_height = int(vidcap.get(4))
 out = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (frame_width, frame_height))
@@ -39,7 +39,7 @@ cars_controller = CarsController(
     frames_to_forget=15,  # кол-во фреймов без обнаружение машины,
     # чтобы перестать пытаться связывать машину с контурами со следующих кадров
     min_size=100,  # минимальный размер контура
-    max_size=200   # максимальный размер конутра
+    max_size=400   # максимальный размер конутра
 )
 
 frame_interval = 2
@@ -55,10 +55,10 @@ def process_frame(frame_number, rects, returned_frame):
 
 
 # Можно использовать дефолтное распознование основаннное на методах цифровой обработки
-default_detector(vidcap, process_frame, frame_interval)
+# default_detector(vidcap, process_frame, frame_interval)
 
 # Или использовать распознование с помощью нейросети
-# web_detector(vidcap, process_frame, frame_interval)
+web_detector(vidcap, process_frame, frame_interval)
 
 # закрываем каналы чтения и записи видео
 out.release()
