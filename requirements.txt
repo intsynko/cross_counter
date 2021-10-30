@@ -1,5 +1,10 @@
-matplotlib==3.4.3
-numpy==1.21.2
+matplotlib==3.3.2
+numpy==1.19.3
 opencv-python==4.5.3.56
-Pillow==8.3.2
+Pillow==7.0.0
 imageai==2.1.6
+tensorflow==2.4.0
+keras==2.4.3
+scipy==1.4.1
+h5py==2.10.0
+keras-resnet==0.2.0
