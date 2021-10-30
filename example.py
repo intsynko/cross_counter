@@ -1,15 +1,13 @@
 import json
 
 import cv2
-import numpy as np
 
 from car import CarsController
 from collector import PolygonCollector
+from detectors import default_detector, web_detector
 
 
 # Создаем объекты чтения готово видео и записи нового видео
-from detectors.default import default_detector
-
 vidcap = cv2. VideoCapture('example_3_1.mp4')
 frame_width = int(vidcap.get(3))
 frame_height = int(vidcap.get(4))
@@ -17,14 +15,9 @@ out = cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 
 
 # Читаем первый кадр
 success, last_image = vidcap.read()
-import matplotlib.pyplot as plt
-
-plt.imshow(last_image)
-plt.show()
 
 
-# Использовать сохраненный дамп размеченных зон
-use_dump = True
+use_dump = True  # флаг использования сохраненного дампа размеченных зон
 if not use_dump:
     # Просим разметить на первом кадре области
     inputs = PolygonCollector().collect(last_image, title='Разметьте области възда на перекресток (Закончив закройте окно)')
@@ -33,6 +26,7 @@ if not use_dump:
     with open('dump.json', 'w') as f:
         f.write(json.dumps({'data': [inputs, outputs, cross]}))
 else:
+    # берем зоны из дампа
     with open('dump.json', 'r') as f:
         inputs, outputs, cross = json.loads(f.read())['data']
 
@@ -51,16 +45,20 @@ cars_controller = CarsController(
 frame_interval = 2
 
 
-def process_default(frame_number, contours, returned_frame):
+def process_frame(frame_number, rects, returned_frame):
     for _ in range(frame_interval-1):
         cars_controller.increment_frame()
-    cars_controller.add_contours(contours)
+    cars_controller.add_rects(rects)
     copy = returned_frame.copy()
     cars_controller.draw(copy)
     out.write(copy)
 
 
-default_detector(vidcap, process_default, frame_interval)
+# Можно использовать дефолтное распознование основаннное на методах цифровой обработки
+default_detector(vidcap, process_frame, frame_interval)
+
+# Или использовать распознование с помощью нейросети
+# web_detector(vidcap, process_frame, frame_interval)
 
 # закрываем каналы чтения и записи видео
 out.release()

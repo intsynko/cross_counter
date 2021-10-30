@@ -1,5 +1,5 @@
 """
- Дефолтный детектор контуров машин, основан на методах
+ Дефолтный детектор контуров машин, основан на методах цифровой обработки изображений
 """
 import cv2
 import numpy as np
@@ -32,7 +32,9 @@ def default_detector(input, per_frame_function, frame_detection_interval=1):
         # находим контуры
         contours, hierarchy = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
-        per_frame_function(frame_num, contours, current_image)
+        rects = [cv2.boundingRect(c) for c in contours]
+
+        per_frame_function(frame_num, rects, current_image)
 
         last_image = current_image
         success, current_image = input.read()

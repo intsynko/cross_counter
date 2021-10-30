@@ -9,10 +9,11 @@ Python 3.7+
 ```bash
 pip install -r requirements.txt
 ```
-Если использовать сетку, то скачать граф для распонавания [отсюда](https://imageai.readthedocs.io/en/latest/video/index.html#note-imageai-will-switch-to-pytorch-backend-starting-from-june-2021)
+Если использовать нейросеть, то скачать граф yolo.h5 для распонавания [отсюда](https://imageai.readthedocs.io/en/latest/video/index.html#note-imageai-will-switch-to-pytorch-backend-starting-from-june-2021)
+
 Запуск:
 ```bash
-python main.py
+python example.py
 ```
 
 Результатом работы является видеофайл с размеченными 

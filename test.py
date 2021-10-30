@@ -51,11 +51,6 @@ def per_frame(frame_number, output_array, output_count, returned_frame=None):
         copy = returned_frame.copy()
         cars_controller.draw(copy)
         out.write(copy)
-    # if frame_number >= 15:
-    #     # закрываем каналы чтения и записи видео
-    #     out.release()
-    #     vidcap.release()
-    #     exit(0)
 
 
 video_path = detector.detectObjectsFromVideo(
