@@ -1,4 +1,5 @@
 import json
+import os
 
 import cv2
 
@@ -63,3 +64,13 @@ web_detector(vidcap, process_frame, frame_interval)
 # закрываем каналы чтения и записи видео
 out.release()
 vidcap.release()
+
+# пишем результаты
+file = 'output.txt'
+if os.path.isfile(file):
+    os.remove(file)
+
+with open(file, 'w') as f:
+    results = cars_controller.str_results()
+    print(results)
+    f.write(results)

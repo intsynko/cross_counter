@@ -1,3 +1,6 @@
+import itertools
+from typing import List
+
 import cv2
 import numpy as np
 
@@ -66,12 +69,13 @@ class Area:
         color = RED if self.tag == INPUT_TAG else BLUE
         cv2.polylines(img, np.int32([self.points]), isClosed=True, color=color)
         cv2.putText(img, str(self.counter), tuple(self.points[0]), 1, 2, RED, 2)
+        cv2.putText(img, str(self.num), tuple(self.points[1]), 1, 2, BLUE, 2)
 
 
 class CarsController:
     def __init__(self, inputs, outputs, cross_area, treashold=50, frames_stay=5, frames_to_forget=15, min_size=40, max_size=200):
         self.frame = 1
-        self.cars = []
+        self.cars: List[Car] = []
         self.inputs = [Area(input_, num, tag=INPUT_TAG) for num, input_ in enumerate(inputs)]
         self.outputs = [Area(output_, num, tag=OUTPUT_TAG) for num, output_ in enumerate(outputs)]
         self.cross_area = cross_area
@@ -148,4 +152,29 @@ class CarsController:
                 continue
             car.draw(img)
 
-
+    def str_results(self):
+        msg = ""
+        sort_cars = lambda cars_, tag: sorted(cars_, key=lambda car: car.area_tag.get(tag, -1))
+        sorted_cars = sort_cars(self.cars, INPUT_TAG)
+        for input_n, input_cars in itertools.groupby(sorted_cars, key=lambda car: car.area_tag.get(INPUT_TAG)):
+            input_cars = list(input_cars)
+            input_cars = sort_cars(input_cars, OUTPUT_TAG)
+            if input_n is None:
+                message = f"для {len(input_cars)} машин область старта не определена, "
+            else:
+                message = f"в области выезда №{input_n} проехало {len(input_cars)} машин, "
+            msg += message
+            for out_n, cars in itertools.groupby(input_cars, key=lambda car: car.area_tag.get(OUTPUT_TAG)):
+                if input_n is None:
+                    if out_n is None:
+                        message = f"из них для {len(list(cars))} машин не опредлеена область съезда, "
+                    else:
+                        message = f"из них {len(list(cars))} съехало в {out_n} область, "
+                elif out_n is None:
+                    message = f"из них область съезда не определлена для {len(list(cars))} машин, "
+                else:
+                    message = f"из них в область съезда №{out_n} проехало {len(list(cars))} машин, "
+                # message = f'{input_n}->{out_n} ({len(list(cars))})'
+                msg += message
+            msg += '\n'
+        return msg
